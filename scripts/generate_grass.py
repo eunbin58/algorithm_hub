@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import subprocess
 from collections import Counter
 from datetime import date, datetime, timedelta, timezone
@@ -105,6 +106,42 @@ def color_level(count: int) -> int:
     return min(count, 4)
 
 
+def chart_range(today: date, columns: int = 53) -> tuple[date, date]:
+    """Return the Sunday-aligned date range used by the activity chart."""
+    days_since_sunday = (today.weekday() + 1) % 7
+    current_week_start = today - timedelta(days=days_since_sunday)
+    start_day = current_week_start - timedelta(weeks=columns - 1)
+    end_day = start_day + timedelta(days=columns * 7 - 1)
+    return start_day, end_day
+
+
+def activity_data(counts: Counter[date], today: date) -> dict[str, object]:
+    """Build the data consumed by the interactive GitHub Pages chart."""
+    start_day, end_day = chart_range(today)
+    current_streak, longest_streak = streaks(counts, today)
+    days = []
+    cursor = start_day
+    while cursor <= end_day:
+        days.append(
+            {
+                "date": cursor.isoformat(),
+                "count": counts.get(cursor, 0) if cursor <= today else 0,
+                "future": cursor > today,
+            }
+        )
+        cursor += timedelta(days=1)
+
+    return {
+        "today": today.isoformat(),
+        "startDate": start_day.isoformat(),
+        "endDate": end_day.isoformat(),
+        "currentStreak": current_streak,
+        "longestStreak": longest_streak,
+        "totalSolved": sum(counts.values()),
+        "days": days,
+    }
+
+
 def render_svg(counts: Counter[date], today: date) -> str:
     cell = 10
     gap = 3
@@ -116,10 +153,7 @@ def render_svg(counts: Counter[date], today: date) -> str:
     height = 218
 
     # Sunday starts each column, matching GitHub's contribution graph layout.
-    days_since_sunday = (today.weekday() + 1) % 7
-    current_week_start = today - timedelta(days=days_since_sunday)
-    start_day = current_week_start - timedelta(weeks=columns - 1)
-    end_day = start_day + timedelta(days=columns * 7 - 1)
+    start_day, end_day = chart_range(today, columns)
 
     current_streak, longest_streak = streaks(counts, today)
     total_solved = sum(counts.values())
@@ -224,6 +258,12 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=Path("assets/grass.svg"))
     parser.add_argument(
+        "--data-output",
+        type=Path,
+        default=Path("site/activity.json"),
+        help="Path for the interactive chart data.",
+    )
+    parser.add_argument(
         "--today",
         type=date.fromisoformat,
         help="Override today's Asia/Seoul date (YYYY-MM-DD), mainly for testing.",
@@ -237,6 +277,12 @@ def main() -> None:
     counts = collect_daily_counts()
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(render_svg(counts, today), encoding="utf-8", newline="\n")
+    args.data_output.parent.mkdir(parents=True, exist_ok=True)
+    args.data_output.write_text(
+        json.dumps(activity_data(counts, today), ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
     current, longest = streaks(counts, today)
     print(
         f"Generated {args.output}: {sum(counts.values())} solved, "

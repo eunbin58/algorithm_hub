@@ -4,4 +4,6 @@
 
 ## Coding Activity
 
-![Algorithm Grass](./assets/grass.svg)
+[![Algorithm Grass](./assets/grass.svg)](https://eunbin58.github.io/algorithm_hub/)
+
+잔디를 클릭하면 날짜별 풀이 수를 확인할 수 있습니다.
