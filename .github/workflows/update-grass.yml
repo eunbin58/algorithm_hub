@@ -1,0 +1,48 @@
+name: Update algorithm grass
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - assets/grass.svg
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-algorithm-grass
+  cancel-in-progress: true
+
+jobs:
+  update-grass:
+    if: github.event.head_commit.message != 'chore: update algorithm grass'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the full repository history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Generate activity graph
+        run: python scripts/generate_grass.py
+
+      - name: Commit updated graph when changed
+        shell: bash
+        run: |
+          if git diff --quiet -- assets/grass.svg; then
+            echo "Algorithm grass is already up to date."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/grass.svg
+          git commit -m "chore: update algorithm grass"
+          git push
