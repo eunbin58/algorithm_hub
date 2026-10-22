@@ -1,10 +1,7 @@
 def solution(n):
     answer = []
-    #원반의 현재 위치 인덱스는 원반 번호
-    # disk=[0]*(n+1)
+    #막대기
     rod=[True]+[False]*3
-    #원반 갯수
-    #n
     
     def f(n, s, g):
         if(n==0):
@@ -20,12 +17,11 @@ def solution(n):
         rod[s]=False
         rod[g]=False
         # answer.append([s,middle])
+        #=> 왜 이걸 없애야 하는지 모르겠어용
         f(n-1,s,middle)
-        
         answer.append([s,g])
         f(n-1,middle,g)
         # answer.append([middle,g])
     
     f(n,1,3)    
-    print(answer)
     return answer
