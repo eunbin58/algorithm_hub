@@ -66,7 +66,7 @@ def solution(board):
             visit[ny-dy[i]][nx-dx[i]]=count+1
         if flag:
             result=count+1
-            break
+            break  
                     
                     
                     
